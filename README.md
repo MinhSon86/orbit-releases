@@ -40,3 +40,14 @@ Bộ cài công khai: https://github.com/MinhSon86/orbit-releases
 Push lên `master` sẽ chạy kiểm thử, dựng giao diện, đóng gói rồi phát hành sang repository công khai khi tất cả bước thành công. Push nhánh khác hoặc pull request chỉ kiểm tra và tạo artifact. Mỗi build có định danh thời gian UTC riêng; không cần sửa VERSION cho từng thay đổi nhỏ. Sửa VERSION khi đổi phiên bản sản phẩm. Nếu build lỗi, app tiếp tục dùng bản phát hành trước.
 
 Workflow cần secret `ORBIT_RELEASE_TOKEN` ở repository mã nguồn, có quyền Contents write cho repository phát hành. Ưu tiên token chỉ cấp quyền repository phát hành; thay thế/gia hạn secret khi token hết hạn. Không đặt token trong mã nguồn, biến VITE hoặc bộ cài. Bản phát hành chứa bytecode Python và giao diện đã dựng; bytecode có thể được phân tích ngược, nên repository riêng tư không bảo đảm bí mật thuật toán trong bộ cài công khai.
+
+
+## Bộ phát hành tự động trên máy phát triển
+
+GitHub Actions hiện trả `startup_failure` trước khi tạo job; chưa xác minh được nguyên nhân từ API. Đã bổ sung bộ phát hành cục bộ để không phụ thuộc việc này.
+
+Tác vụ Windows **Orbit Release Publisher** kiểm tra `origin/master` mỗi 5 phút khi tài khoản Windows đã đăng nhập và máy có mạng. Khi có commit mới, nó tạo worktree tách biệt, cài dependency vào môi trường riêng, chạy kiểm thử, build, kiểm chứng cài/cập nhật/rollback rồi phát hành công khai. Nó không pull/reset cây mã nguồn đang làm việc, không cần lưu thêm token: chỉ lấy thông tin đăng nhập từ Git Credential Manager trong bộ nhớ lúc phát hành. Máy khách không có tác vụ phát hành này.
+
+Kích hoạt trên máy phát triển khác: chạy `scripts/enable-publisher.ps1` sau khi clone mã nguồn, setup môi trường và đăng nhập GitHub có quyền phát hành. Xem log tại `.data/publisher/publisher.log`; chạy ngay bằng `scripts/publish-watch.ps1`. Tạm dừng bằng `Disable-ScheduledTask -TaskName 'Orbit Release Publisher'`. Có thể gỡ bằng `Unregister-ScheduledTask -TaskName 'Orbit Release Publisher'`.
+
+Nếu máy phát triển tắt hoặc đăng xuất, bản phát hành tự động cục bộ sẽ chờ đến khi máy hoạt động lại. Khi GitHub Actions hoạt động ổn định, có thể tắt bộ cục bộ. Chỉ một bộ phát hành nên chạy cho một commit để tránh tạo hai bản tương đương.
